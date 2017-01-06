@@ -4,7 +4,7 @@ require_relative './cluster_helper'
 VALID_HOST_NAME_REGEX = /^[a-z-]+$/
 CLUSTER_BOOTSTRA_DATA = {
   tags: ['jar-app', 'env-stage'],
-  num_nodes: 10,
+  num_nodes: 3,
   region: %w(sfo2 nyc1),
   image: 'coreos-stable',
   size: '512mb'
@@ -30,7 +30,7 @@ namespace :cluster do
       resp = do_client.droplets.create(droplet)
     end
     Rake::Task["cluster:list"].execute
-    Rake::Task["cluster:etcd:encrypt"].execute
+    Rake::Task["cluster:etcd:encrypt"].invoke
   end
 
   desc "List droplets in the cluster"
@@ -50,6 +50,13 @@ namespace :cluster do
       resp = do_client.droplets.delete_for_tag(tag_name: tag)
     rescue => e
       logger.error e.message
+    end
+  end
+
+  desc "Reboots all machines in the cluster"
+  task :reboot do
+    Parallel.each(created_cluster_droplets, progress: "Rebooting all machines in the cluster") do |droplet|
+      do_client.droplet_actions.reboot(droplet_id: droplet.id)
     end
   end
 

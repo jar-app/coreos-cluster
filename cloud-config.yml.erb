@@ -1,7 +1,7 @@
 #cloud-config
 
 coreos:
-    etcd2:
+  etcd2:
     # generate a new token for each unique cluster from https://discovery.etcd.io/new:
     discovery: <%= etcd_discover_token %>
     # multi-region deployments, multi-cloud deployments, and Droplets without
@@ -21,10 +21,10 @@ write_files:
     content: |
       [Service]
       # client environment variables
-      Environment=ETCD_CA_FILE=/home/core/ca.pem
-      Environment=ETCD_CERT_FILE=/home/core/coreos.pem
-      Environment=ETCD_KEY_FILE=/home/core/coreos-key.pem
+      Environment=ETCD_CA_FILE=<%= remote_ca_file_path %>
+      Environment=ETCD_CERT_FILE=<%= remote_cert_file_path %>
+      Environment=ETCD_KEY_FILE=<%= remote_key_file_path %>
       # peer environment variables
-      Environment=ETCD_PEER_CA_FILE=/home/core/ca.pem
-      Environment=ETCD_PEER_CERT_FILE=/home/core/coreos.pem
-      Environment=ETCD_PEER_KEY_FILE=/home/core/coreos-key.pem
+      Environment=ETCD_PEER_CA_FILE=<%= remote_ca_file_path %>
+      Environment=ETCD_PEER_CERT_FILE=<%= remote_cert_file_path %>
+      Environment=ETCD_PEER_KEY_FILE=<%= remote_key_file_path %>

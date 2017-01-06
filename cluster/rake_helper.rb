@@ -10,3 +10,15 @@ end
 def logger
   @logger ||= Logger.new(STDOUT)
 end
+
+def remote_ca_file_path
+  "/home/core/ca.pem"
+end
+
+def remote_cert_file_path
+  "/home/core/coreos.pem"
+end
+
+def remote_key_file_path
+  "/home/core/coreos-key.pem"
+end
