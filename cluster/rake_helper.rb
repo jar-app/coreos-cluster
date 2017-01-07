@@ -12,17 +12,17 @@ def logger
 end
 
 def remote_ca_file_path
-  "/home/core/ca.pem"
+  '/home/core/ca.pem'
 end
 
 def remote_cert_file_path
-  "/home/core/coreos.pem"
+  '/home/core/coreos.pem'
 end
 
 def remote_key_file_path
-  "/home/core/coreos-key.pem"
+  '/home/core/coreos-key.pem'
 end
 
 def client_advertise_urls
-  ["https://0.0.0.0:2379", "https://0.0.0.0:4001"]
+  ['https://0.0.0.0:2379', 'https://0.0.0.0:4001']
 end

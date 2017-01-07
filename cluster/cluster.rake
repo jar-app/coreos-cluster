@@ -16,7 +16,7 @@ namespace :cluster do
     # Generate the etcd discover token only once
     etcd_discover_token
     ssh_key = do_client.ssh_keys.all.first.id
-    Parallel.each(CLUSTER_BOOTSTRA_DATA[:num_nodes].times, progress: "Spinng up VMs") do
+    Parallel.each(CLUSTER_BOOTSTRA_DATA[:num_nodes].times, progress: 'Spinng up VMs') do
       region = CLUSTER_BOOTSTRA_DATA[:region].sample
       name = droplet_name
       user_data = cloud_config(name)
@@ -30,15 +30,15 @@ namespace :cluster do
                                         ssh_keys: [ssh_key])
       resp = do_client.droplets.create(droplet)
     end
-    Rake::Task["cluster:list"].execute
-    Rake::Task["cluster:etcd:encrypt"].invoke
+    Rake::Task['cluster:list'].execute
+    Rake::Task['cluster:etcd:encrypt'].invoke
   end
 
-  desc "List droplets in the cluster"
+  desc 'List droplets in the cluster'
   task :list do
     Parallel.each(created_cluster_droplets) do |droplet|
       name = "'#{droplet.name}'"[0...25].ljust(25)
-      ip_address = droplet.networks.v4.first ? droplet.networks.v4.first.ip_address : "pending"
+      ip_address = droplet.networks.v4.first ? droplet.networks.v4.first.ip_address : 'pending'
       logger.info "Droplet: #{name} ipv4: #{ip_address}"
     end
   end
@@ -54,24 +54,24 @@ namespace :cluster do
     end
   end
 
-  desc "Reboots all machines in the cluster"
+  desc 'Reboots all machines in the cluster'
   task :reboot do
-    Parallel.each(created_cluster_droplets, progress: "Rebooting all machines in the cluster") do |droplet|
+    Parallel.each(created_cluster_droplets, progress: 'Rebooting all machines in the cluster') do |droplet|
       do_client.droplet_actions.reboot(droplet_id: droplet.id)
     end
   end
 
   desc 'Brings down ALL the coreos nodes'
   task :down_all do
-      num_deleted = 0
-      Parallel.map(do_client.droplets.all, progress: "Shutting down VMs", in_threads: 10) do |droplet|
-        begin
-          do_client.droplets.delete(id: droplet.id)
-          num_deleted = num_deleted + 1
-        rescue => e
-          logger.error e.message
-        end
+    num_deleted = 0
+    Parallel.map(do_client.droplets.all, progress: 'Shutting down VMs', in_threads: 10) do |droplet|
+      begin
+        do_client.droplets.delete(id: droplet.id)
+        num_deleted += 1
+      rescue => e
+        logger.error e.message
       end
-      logger.info "Deleted #{num_deleted} total VM(s)"
     end
+    logger.info "Deleted #{num_deleted} total VM(s)"
+  end
 end

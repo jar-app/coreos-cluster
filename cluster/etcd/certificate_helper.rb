@@ -7,7 +7,7 @@ module CertificateHelper
     ca_cert.version = 2
     ca_cert.serial = SecureRandom.hex(20).to_i(16) # Random number in 20 bytes
     ca_cert.not_before = Time.now
-    ca_cert.not_after = Time.now + (2*365*24*60*60) # 2 years
+    ca_cert.not_after = Time.now + (2 * 365 * 24 * 60 * 60) # 2 years
     ca_cert.public_key = ca_key.public_key
     ca_cert.subject = ca_name
     ca_cert.issuer = ca_name
@@ -28,7 +28,7 @@ module CertificateHelper
     peer_cert.serial = SecureRandom.hex(20).to_i(16) # Random number in 20 bytes
     peer_cert.version = 2
     peer_cert.not_before = Time.now
-    peer_cert.not_after = Time.now + (2*365*24*60*60) # 2 years
+    peer_cert.not_after = Time.now + (2 * 365 * 24 * 60 * 60) # 2 years
 
     peer_cert.subject = OpenSSL::X509::Name.parse peer_name_opts(hostname)
     peer_cert.public_key = peer_key.public_key
@@ -54,23 +54,23 @@ module CertificateHelper
   def self.peer_name_opts(hostname)
     {
       CN: hostname,
-      C: "United States",
-      ST: "California",
-      L: "San Francisco",
-      O: "Jarjs",
-      OU: "Infrastructure"
-    }.map { |k,v| "#{k}=#{v}/" }.join
+      C: 'United States',
+      ST: 'California',
+      L: 'San Francisco',
+      O: 'Jarjs',
+      OU: 'Infrastructure'
+    }.map { |k, v| "#{k}=#{v}/" }.join
   end
 
   def self.ca_name_opts
     {
-      CN: "Jarjs CA",
-      C: "United States",
-      ST: "California",
-      L: "San Francisco",
-      O: "Jarjs",
-      OU: "Infrastructure"
-    }.map { |k,v| "#{k}=#{v}/" }.join
+      CN: 'Jarjs CA',
+      C: 'United States',
+      ST: 'California',
+      L: 'San Francisco',
+      O: 'Jarjs',
+      OU: 'Infrastructure'
+    }.map { |k, v| "#{k}=#{v}/" }.join
   end
 
   def self.san_alt_names(hostname, host_ip)
@@ -81,7 +81,5 @@ module CertificateHelper
       "DNS:#{hostname}.local",
       "IP:#{host_ip}"
     ].join(',')
-
   end
-
 end

@@ -20,7 +20,7 @@ namespace :cluster do
     # Generate the etcd discover token only once
     user_data = cloud_config
     ssh_key = do_client.ssh_keys.all.first.id
-    Parallel.each(CLUSTER_BOOTSTRA_DATA[:num_nodes].times, progress: "Spinng up VMs") do
+    Parallel.each(CLUSTER_BOOTSTRA_DATA[:num_nodes].times, progress: 'Spinng up VMs') do
       region = CLUSTER_BOOTSTRA_DATA[:region].sample
       name = droplet_name
       droplet = DropletKit::Droplet.new(name: name,
@@ -33,15 +33,15 @@ namespace :cluster do
                                         ssh_keys: [ssh_key])
       resp = do_client.droplets.create(droplet)
     end
-    Rake::Task["cluster:list"].execute
+    Rake::Task['cluster:list'].execute
   end
 
-  desc "List droplets in the cluster"
+  desc 'List droplets in the cluster'
   task :list do
     created_droplets = do_client.droplets.all(tag: CLUSTER_BOOTSTRA_DATA[:tags].first)
     Parallel.each(created_droplets) do |droplet|
       name = "'#{droplet.name}'".ljust(25)
-      ip_address = droplet.networks.v4.first ? droplet.networks.v4.first.ip_address : "pending"
+      ip_address = droplet.networks.v4.first ? droplet.networks.v4.first.ip_address : 'pending'
       logger.info "Droplet: #{name} ipv4: #{ip_address}"
     end
   end
@@ -59,7 +59,7 @@ namespace :cluster do
 
   desc 'Brings down ALL the coreos nodes'
   task :down_all do
-    Parallel.map(do_client.droplets.all, progress: "Shutting down VMs") do |droplet|
+    Parallel.map(do_client.droplets.all, progress: 'Shutting down VMs') do |droplet|
       do_client.droplets.delete(id: droplet.id)
       logger.info "Deleted droplet: '#{droplet.name}' in region #{droplet.region.name}"
     end
