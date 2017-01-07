@@ -4,7 +4,7 @@ require_relative './cluster_helper'
 VALID_HOST_NAME_REGEX = /^[a-z-]+$/
 CLUSTER_BOOTSTRA_DATA = {
   tags: ['jar-app', 'env-stage'],
-  num_nodes: 3,
+  num_nodes: 10,
   region: %w(sfo2 nyc1),
   image: 'coreos-stable',
   size: '512mb'

@@ -29,7 +29,7 @@ namespace :cluster do
       end
     end
 
-    desc "Generate a certificates by the created CA for all members in the cluster"
+    desc "Generate a client certificate for all members in the cluster"
     task :generate_peer_certs => [:clean_certs, :generate_ca_cert]  do
       wait_for_cluster_bootstrap
       FileUtils.mkdir_p CERT_DIR
@@ -58,9 +58,6 @@ namespace :cluster do
       droplets = created_cluster_droplets
       ssh_dir = File.join(Etc.getpwuid.dir, ".ssh")
       ssh_private_keys = [File.read("#{ssh_dir}/id_rsa")]
-      boot_wait_time = 20
-      logger.info "Sleeping #{boot_wait_time} seconds to let machines fully boot"
-      sleep boot_wait_time
       Parallel.each(droplets, progress: "Copying certificates to cluster") do |droplet|
         hostname = droplet.name
         host_ip = droplet.networks.v4.first.ip_address
@@ -68,10 +65,23 @@ namespace :cluster do
         key_path = "#{CERT_DIR}/#{hostname}.key"
         peer_cert_path = "#{CERT_DIR}/#{hostname}.pem"
         ca_cert_path = "#{CERT_DIR}/#{CA_CERT_NAME}"
-        Net::SSH.start(host_ip, user, key_data: ssh_private_keys, keys_only: true) do |ssh|
-          ssh.scp.upload!(key_path, remote_key_file_path)
-          ssh.scp.upload!(peer_cert_path, remote_cert_file_path)
-          ssh.scp.upload!(ca_cert_path, remote_ca_file_path)
+        retry_interval = 5
+        retry_count = 10
+        begin
+          Net::SSH.start(host_ip, user, key_data: ssh_private_keys, keys_only: true, auth_methods: ["publickey"]) do |ssh|
+            ssh.scp.upload!(key_path, remote_key_file_path)
+            ssh.scp.upload!(peer_cert_path, remote_cert_file_path)
+            ssh.scp.upload!(ca_cert_path, remote_ca_file_path)
+          end
+        rescue => e
+          retry_count = retry_count - 1
+          if retry_count <= 0
+            raise e
+          else
+            logger.error("#{hostname}: #{e.message}")
+            sleep retry_interval
+            retry
+          end
         end
       end
     end
