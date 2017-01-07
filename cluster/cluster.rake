@@ -14,11 +14,12 @@ namespace :cluster do
   desc 'Brings up the core-os cluster'
   task :up do
     # Generate the etcd discover token only once
-    user_data = cloud_config
+    etcd_discover_token
     ssh_key = do_client.ssh_keys.all.first.id
     Parallel.each(CLUSTER_BOOTSTRA_DATA[:num_nodes].times, progress: "Spinng up VMs") do
       region = CLUSTER_BOOTSTRA_DATA[:region].sample
       name = droplet_name
+      user_data = cloud_config(name)
       droplet = DropletKit::Droplet.new(name: name,
                                         user_data: user_data,
                                         region: region,

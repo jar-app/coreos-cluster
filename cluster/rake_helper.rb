@@ -22,3 +22,7 @@ end
 def remote_key_file_path
   "/home/core/coreos-key.pem"
 end
+
+def client_advertise_urls
+  ["https://0.0.0.0:2379", "https://0.0.0.0:4001"]
+end

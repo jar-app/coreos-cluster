@@ -1,3 +1,4 @@
+require_relative '../cluster_helper'
 module CertificateHelper
   def self.ca_key_certificate_pair
     ca_key = OpenSSL::PKey::RSA.new 4096
@@ -76,6 +77,7 @@ module CertificateHelper
     [
       "DNS:#{hostname}",
       'IP:127.0.0.1',
+      'IP:0.0.0.0',
       "DNS:#{hostname}.local",
       "IP:#{host_ip}"
     ].join(',')

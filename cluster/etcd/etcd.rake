@@ -16,7 +16,6 @@ namespace :cluster do
     task :encrypt do
       Rake::Task["cluster:etcd:generate_peer_certs"].invoke
       Rake::Task["cluster:etcd:copy_certs_to_cluster"].invoke
-      Rake::Task["cluster:reboot"].invoke
     end
 
     desc "Generate a CA certificate"
@@ -67,8 +66,14 @@ namespace :cluster do
         ca_cert_path = "#{CERT_DIR}/#{CA_CERT_NAME}"
         retry_interval = 5
         retry_count = 10
+        ssh_opts = {
+          :paranoid => false, # Avoid raising errors on host key fingerprint mismatch
+          key_data: ssh_private_keys,
+          keys_only: true,
+          auth_methods: ["publickey"] # Only use public/private key auth
+        }
         begin
-          Net::SSH.start(host_ip, user, key_data: ssh_private_keys, keys_only: true, auth_methods: ["publickey"]) do |ssh|
+          Net::SSH.start(host_ip, user, ssh_opts) do |ssh|
             ssh.scp.upload!(key_path, remote_key_file_path)
             ssh.scp.upload!(peer_cert_path, remote_cert_file_path)
             ssh.scp.upload!(ca_cert_path, remote_ca_file_path)
