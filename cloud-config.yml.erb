@@ -1,6 +1,12 @@
 #cloud-config
 
 coreos:
+  flannel:
+      etcd_endpoints: <%= client_advertise_urls.join(',') %>
+      etcd_cafile: <%= remote_ca_file_path %>
+      etcd_certfile: <%= remote_cert_file_path %>
+      etcd_keyfile: <%= remote_key_file_path %>
+
   etcd2:
     # generate a new token for each unique cluster from https://discovery.etcd.io/new:
     discovery: <%= etcd_discover_token %>
@@ -26,4 +32,12 @@ coreos:
              Environment=ETCD_PEER_CA_FILE=<%= remote_ca_file_path %>
              Environment=ETCD_PEER_CERT_FILE=<%= remote_cert_file_path %>
              Environment=ETCD_PEER_KEY_FILE=<%= remote_key_file_path %>
+      command: start
+    - name: flanneld.service
+      drop-ins:
+        - name: 50-network-config.conf
+          content: |
+            [Service]
+            Environment="ETCD_SSL_DIR=<%= remote_ssl_dir %>"
+            ExecStartPre=/usr/bin/etcdctl --endpoints="<%= client_advertise_urls[0] %>" --cert-file=<%= remote_cert_file_path %> --key-file=<%= remote_key_file_path %> --ca-file=<%= remote_ca_file_path %> set /coreos.com/network/config '{ "Network": "10.1.0.0/16" }'
       command: start

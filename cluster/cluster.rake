@@ -1,31 +1,26 @@
+require 'yaml'
 require_relative './rake_helper'
 require_relative './cluster_helper'
 
 VALID_HOST_NAME_REGEX = /^[a-z-]+$/
-CLUSTER_BOOTSTRA_DATA = {
-  tags: ['jar-app', 'env-stage'],
-  num_nodes: 10,
-  region: %w(sfo2 nyc1),
-  image: 'coreos-stable',
-  size: '512mb'
-}.freeze
-
-namespace :cluster do
+CONFIG = YAML.load_file('config.yml')
+CLUSTER_BOOTSTRAP_DATA = CONFIG['cluster']['bootstrap']
+namespace 'cluster' do
   desc 'Brings up the core-os cluster'
   task :up do
     # Generate the etcd discover token only once
     etcd_discover_token
     ssh_key = do_client.ssh_keys.all.first.id
-    Parallel.each(CLUSTER_BOOTSTRA_DATA[:num_nodes].times, progress: 'Spinng up VMs') do
-      region = CLUSTER_BOOTSTRA_DATA[:region].sample
+    Parallel.each(CLUSTER_BOOTSTRAP_DATA['num_nodes'].times, progress: 'Spinng up VMs') do
+      region = CLUSTER_BOOTSTRAP_DATA['regions'].sample
       name = droplet_name
       user_data = cloud_config(name)
       droplet = DropletKit::Droplet.new(name: name,
                                         user_data: user_data,
                                         region: region,
-                                        image: CLUSTER_BOOTSTRA_DATA[:image],
-                                        size: CLUSTER_BOOTSTRA_DATA[:size],
-                                        tags: CLUSTER_BOOTSTRA_DATA[:tags],
+                                        image: CLUSTER_BOOTSTRAP_DATA['image'],
+                                        size: CLUSTER_BOOTSTRAP_DATA['size'],
+                                        tags: CLUSTER_BOOTSTRAP_DATA['tags'],
                                         ipv6: true,
                                         ssh_keys: [ssh_key])
       resp = do_client.droplets.create(droplet)
@@ -46,7 +41,7 @@ namespace :cluster do
   desc 'Brings up the coreos cluster'
   task :down do
     begin
-      tag = CLUSTER_BOOTSTRA_DATA[:tags].first
+      tag = CLUSTER_BOOTSTRAP_DATA['tags'].first
       logger.info "Deleting all images with the tag: '#{tag}'"
       resp = do_client.droplets.delete_for_tag(tag_name: tag)
     rescue => e
@@ -58,6 +53,19 @@ namespace :cluster do
   task :reboot do
     Parallel.each(created_cluster_droplets, progress: 'Rebooting all machines in the cluster') do |droplet|
       do_client.droplet_actions.reboot(droplet_id: droplet.id)
+    end
+  end
+
+  desc 'SSH into the first cluster member'
+  task :ssh do
+    droplets = created_cluster_droplets
+    if droplets && droplets.first
+      droplet = droplets.first
+      ip_address = droplet.networks.v4.first ? droplet.networks.v4.first.ip_address : nil
+      return logger.error "Network not available on node: #{droplet.name}" unless ip_address
+      system("ssh core@#{ip_address}")
+    else
+      logger.error "No droplet available"
     end
   end
 

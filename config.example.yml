@@ -1,0 +1,13 @@
+# Sample config file. Use this as a tempalte for your config.yml
+cluster:
+  bootstrap:
+    :tags:
+      - jar-app
+      - env-stage
+    :num_nodes: 3
+    :regions:
+      - sfo2
+      - nyc1
+    :image: coreos-stable
+    :size: 512mb
+  local_ssh_private_key_path: /path/to/ssh/key

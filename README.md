@@ -8,7 +8,7 @@ Scripts and config to help bootstrap a CoreOS cluster on DigitalOcean with:
 #### To bootstrap the cluster
 - Pre-reqs:
   - Generate an ssh key and upload it to your digital ocean account
-  - Have the private key be located in `~/.ssh/id_rsa` locally
+  - Copy `config.example.yml` to `config.yml` and configure `local_ssh_private_key_path`
 
 ```bash
 bundle && DIGITAL_OCEAN_ACCESS_TOKEN=XXX bundle exec rake cluster:up
@@ -24,6 +24,10 @@ DIGITAL_OCEAN_ACCESS_TOKEN=XXX bundle exec rake cluster:list
 DIGITAL_OCEAN_ACCESS_TOKEN=XXX bundle exec rake cluster:down
 ```
 
+### SSH into first cluster member
+```bash
+DIGITAL_OCEAN_ACCESS_TOKEN=XXX bundle exec rake cluster:ssh
+```
 
 #### Reboot the cluster
 ```bash

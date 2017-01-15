@@ -10,7 +10,7 @@ require_relative './certificate_helper'
 CERT_DIR = '.data/certs/'.freeze
 CA_CERT_NAME = 'ca_cert.perm'.freeze
 
-namespace :cluster do
+namespace 'cluster' do
   namespace :etcd do
     desc 'Generate certifactes for etcd2 to encrypt/authenticate all communication'
     task :encrypt do
@@ -55,8 +55,8 @@ namespace :cluster do
 
     task :copy_certs_to_cluster do
       droplets = created_cluster_droplets
-      ssh_dir = File.join(Etc.getpwuid.dir, '.ssh')
-      ssh_private_keys = [File.read("#{ssh_dir}/id_rsa")]
+      ssh_key_path = CONFIG['cluster']['local_ssh_private_key_path']
+      ssh_private_keys = [File.read(ssh_key_path)]
       Parallel.each(droplets, progress: 'Copying certificates to cluster') do |droplet|
         hostname = droplet.name
         host_ip = droplet.networks.v4.first.ip_address
@@ -74,9 +74,12 @@ namespace :cluster do
         }
         begin
           Net::SSH.start(host_ip, user, ssh_opts) do |ssh|
+            ssh.exec!( "sudo mkdir -p #{remote_ssl_dir}")
+            ssh.exec!( "sudo chown core #{remote_ssl_dir}")
             ssh.scp.upload!(key_path, remote_key_file_path)
             ssh.scp.upload!(peer_cert_path, remote_cert_file_path)
             ssh.scp.upload!(ca_cert_path, remote_ca_file_path)
+            ssh.exec!( "sudo chown -hR etcd:etcd #{remote_ssl_dir}")
           end
         rescue => e
           retry_count -= 1
