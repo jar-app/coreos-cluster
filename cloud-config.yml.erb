@@ -2,20 +2,20 @@
 
 coreos:
   flannel:
-      etcd_endpoints: <%= client_advertise_urls.join(',') %>
-      etcd_cafile: <%= remote_ca_file_path %>
-      etcd_certfile: <%= remote_cert_file_path %>
-      etcd_keyfile: <%= remote_key_file_path %>
+      etcd_endpoints: <%= Etcd::Helper.client_advertise_url %>
+      etcd_cafile: <%= Etcd::Helper.remote_ca_file_path %>
+      etcd_certfile: <%= Etcd::Helper.remote_cert_file_path %>
+      etcd_keyfile: <%= Etcd::Helper.remote_key_file_path %>
 
   etcd2:
     # generate a new token for each unique cluster from https://discovery.etcd.io/new:
-    discovery: <%= etcd_discover_token %>
+    discovery: <%= Etcd::Helper.etcd_discover_token %>
     # multi-region deployments, multi-cloud deployments, and Droplets without
     # private networking need to use $public_ipv4:
     advertise-client-urls: https://$public_ipv4:2379,https://$public_ipv4:4001
     initial-advertise-peer-urls: https://$public_ipv4:2380
     # listen on the official ports 2379, 2380 and one legacy port 4001:
-    listen-client-urls: <%= client_advertise_urls.join(',') %>
+    listen-client-urls: <%= Etcd::Helper.client_advertise_url %>
     listen-peer-urls: https://$public_ipv4:2380
   units:
     - name: etcd2.service
@@ -25,19 +25,23 @@ coreos:
              [Service]
              # client environment variables
              Environment=ETCD_NAME=<%= etcd_member_name %>
-             Environment=ETCD_CA_FILE=<%= remote_ca_file_path %>
-             Environment=ETCD_CERT_FILE=<%= remote_cert_file_path %>
-             Environment=ETCD_KEY_FILE=<%= remote_key_file_path %>
+             Environment=ETCD_CA_FILE=<%= Etcd::Helper.remote_ca_file_path %>
+             Environment=ETCD_CERT_FILE=<%= Etcd::Helper.remote_cert_file_path %>
+             Environment=ETCD_KEY_FILE=<%= Etcd::Helper.remote_key_file_path %>
              # peer environment variables
-             Environment=ETCD_PEER_CA_FILE=<%= remote_ca_file_path %>
-             Environment=ETCD_PEER_CERT_FILE=<%= remote_cert_file_path %>
-             Environment=ETCD_PEER_KEY_FILE=<%= remote_key_file_path %>
+             Environment=ETCD_PEER_CA_FILE=<%= Etcd::Helper.remote_ca_file_path %>
+             Environment=ETCD_PEER_CERT_FILE=<%= Etcd::Helper.remote_cert_file_path %>
+             Environment=ETCD_PEER_KEY_FILE=<%= Etcd::Helper.remote_key_file_path %>
       command: start
     - name: flanneld.service
       drop-ins:
         - name: 50-network-config.conf
           content: |
             [Service]
-            Environment="ETCD_SSL_DIR=<%= remote_ssl_dir %>"
-            ExecStartPre=/usr/bin/etcdctl --endpoints="<%= client_advertise_urls[0] %>" --cert-file=<%= remote_cert_file_path %> --key-file=<%= remote_key_file_path %> --ca-file=<%= remote_ca_file_path %> set /coreos.com/network/config '{ "Network": "10.1.0.0/16" }'
+            Environment="ETCD_SSL_DIR=<%= Etcd::Helper.remote_ssl_dir %>"
+            ExecStartPre=/usr/bin/etcdctl --endpoints="<%= Etcd::Helper.client_advertise_url %>" \
+                                          --cert-file=<%= Etcd::Helper.remote_cert_file_path %> \
+                                          --key-file=<%= Etcd::Helper.remote_key_file_path %> \
+                                          --ca-file=<%= Etcd::Helper.remote_ca_file_path %> \
+                                          set /coreos.com/network/config '{ "Network": <%= Flanneld::Helper.subnet %>, "Backend": { "Type": "vxlan"} }'
       command: start

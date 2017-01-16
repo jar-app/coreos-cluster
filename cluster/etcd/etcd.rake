@@ -5,7 +5,7 @@ require 'net/scp'
 require 'net/ssh'
 require 'etc'
 require_relative '../cluster_helper'
-require_relative './certificate_helper'
+require_relative 'certificate_helper'
 
 CERT_DIR = '.data/certs/'.freeze
 CA_CERT_NAME = 'ca_cert.perm'.freeze
@@ -22,7 +22,7 @@ namespace 'cluster' do
     task generate_ca_cert: [:clean_certs] do
       logger.info 'Generating CA'
       FileUtils.mkdir_p CERT_DIR
-      @ca_key, @ca_cert = CertificateHelper.ca_key_certificate_pair
+      @ca_key, @ca_cert = Etcd::CertificateHelper.ca_key_certificate_pair
       open "#{CERT_DIR}/#{CA_CERT_NAME}", 'w' do |io|
         io.write @ca_cert.to_pem
       end
@@ -30,15 +30,15 @@ namespace 'cluster' do
 
     desc 'Generate a client certificate for all members in the cluster'
     task generate_peer_certs: [:clean_certs, :generate_ca_cert] do
-      wait_for_cluster_bootstrap
+      Cluster::Helper.wait_for_cluster_bootstrap
       FileUtils.mkdir_p CERT_DIR
-      droplets = created_cluster_droplets
+      droplets = Cluster::Helper.created_cluster_droplets
       Parallel.each(droplets, progress: 'Generating peer certifactes') do |droplet|
         hostname = droplet.name
         host_ip = droplet.networks.v4.first.ip_address
         ca_cert = @ca_cert || raise('@ca_cert not set!')
         ca_key = @ca_key || raise('@ca_key not set!')
-        peer_key, peer_cert, = CertificateHelper.peer_key_certificate_pair(hostname, host_ip, ca_cert, ca_key)
+        peer_key, peer_cert, = Etcd::CertificateHelper.peer_key_certificate_pair(hostname, host_ip, ca_cert, ca_key)
         open "#{CERT_DIR}/#{hostname}.pem", 'w' do |io|
           io.write peer_cert.to_pem
         end
@@ -54,7 +54,7 @@ namespace 'cluster' do
     end
 
     task :copy_certs_to_cluster do
-      droplets = created_cluster_droplets
+      droplets = Cluster::Helper.created_cluster_droplets
       ssh_key_path = CONFIG['cluster']['local_ssh_private_key_path']
       ssh_private_keys = [File.read(ssh_key_path)]
       Parallel.each(droplets, progress: 'Copying certificates to cluster') do |droplet|
@@ -74,12 +74,12 @@ namespace 'cluster' do
         }
         begin
           Net::SSH.start(host_ip, user, ssh_opts) do |ssh|
-            ssh.exec!( "sudo mkdir -p #{remote_ssl_dir}")
-            ssh.exec!( "sudo chown core #{remote_ssl_dir}")
-            ssh.scp.upload!(key_path, remote_key_file_path)
-            ssh.scp.upload!(peer_cert_path, remote_cert_file_path)
-            ssh.scp.upload!(ca_cert_path, remote_ca_file_path)
-            ssh.exec!( "sudo chown -hR etcd:etcd #{remote_ssl_dir}")
+            ssh.exec!( "sudo mkdir -p #{Etcd::Helper.remote_ssl_dir}")
+            ssh.exec!( "sudo chown core #{Etcd::Helper.remote_ssl_dir}")
+            ssh.scp.upload!(key_path, Etcd::Helper.remote_key_file_path)
+            ssh.scp.upload!(peer_cert_path, Etcd::Helper.remote_cert_file_path)
+            ssh.scp.upload!(ca_cert_path, Etcd::Helper.remote_ca_file_path)
+            ssh.exec!( "sudo chown -hR etcd:etcd #{Etcd::Helper.remote_ssl_dir}")
           end
         rescue => e
           retry_count -= 1

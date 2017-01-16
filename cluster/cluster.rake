@@ -1,20 +1,17 @@
-require 'yaml'
-require_relative './rake_helper'
-require_relative './cluster_helper'
+require_relative 'cluster_helper'
+require_relative 'etcd/etcd_helper'
+require_relative 'flanneld/flanneld_helper'
 
-VALID_HOST_NAME_REGEX = /^[a-z-]+$/
-CONFIG = YAML.load_file('config.yml')
-CLUSTER_BOOTSTRAP_DATA = CONFIG['cluster']['bootstrap']
 namespace 'cluster' do
   desc 'Brings up the core-os cluster'
   task :up do
     # Generate the etcd discover token only once
-    etcd_discover_token
+    Etcd::Helper.etcd_discover_token(CLUSTER_BOOTSTRAP_DATA['num_nodes'])
     ssh_key = do_client.ssh_keys.all.first.id
     Parallel.each(CLUSTER_BOOTSTRAP_DATA['num_nodes'].times, progress: 'Spinng up VMs') do
       region = CLUSTER_BOOTSTRAP_DATA['regions'].sample
-      name = droplet_name
-      user_data = cloud_config(name)
+      name = Cluster::Helper.droplet_name
+      user_data = Cluster::Helper.cloud_config(name)
       droplet = DropletKit::Droplet.new(name: name,
                                         user_data: user_data,
                                         region: region,
@@ -31,7 +28,7 @@ namespace 'cluster' do
 
   desc 'List droplets in the cluster'
   task :list do
-    Parallel.each(created_cluster_droplets) do |droplet|
+    Parallel.each(Cluster::Helper.created_cluster_droplets) do |droplet|
       name = "'#{droplet.name}'"[0...25].ljust(25)
       ip_address = droplet.networks.v4.first ? droplet.networks.v4.first.ip_address : 'pending'
       logger.info "Droplet: #{name} ipv4: #{ip_address}"
@@ -51,14 +48,14 @@ namespace 'cluster' do
 
   desc 'Reboots all machines in the cluster'
   task :reboot do
-    Parallel.each(created_cluster_droplets, progress: 'Rebooting all machines in the cluster') do |droplet|
+    Parallel.each(Cluster::Helper.created_cluster_droplets, progress: 'Rebooting all machines in the cluster') do |droplet|
       do_client.droplet_actions.reboot(droplet_id: droplet.id)
     end
   end
 
   desc 'SSH into the first cluster member'
   task :ssh do
-    droplets = created_cluster_droplets
+    droplets = Cluster::Helper.created_cluster_droplets
     if droplets && droplets.first
       droplet = droplets.first
       ip_address = droplet.networks.v4.first ? droplet.networks.v4.first.ip_address : nil
