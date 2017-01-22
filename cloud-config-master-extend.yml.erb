@@ -1,0 +1,23 @@
+coreos:
+  units:
+    - name: kubernetes-api-server.service
+      command: "start"
+      enable: true
+      content: |
+        [Unit]
+        Description=Kubernetes API Server
+        Documentation=https://kubernetes.io/docs/
+        After=etcd2.service
+        After=flanneld.service
+
+        [Service]
+        ExecStart=<%= Kubernetes::Helper.binaries_dir %>/kube-apiserver --address='<%= Kubernetes::Helper.api_server_ip %>' --port=<%= Kubernetes::Helper.api_server_port %> --etcd_servers='<%= Etcd::Helper.client_advertise_url %>' --portal_net='<%= Flanneld::Helper.subnet %>' --logtostderr=true --etcd-cafile=<%= Etcd::Helper.remote_ca_file_path %> --etcd-certfile=<%= Etcd::Helper.remote_cert_file_path %> --etcd-keyfile=<%= Etcd::Helper.remote_key_file_path %>
+        Restart=on-failure
+        RestartSec=5
+
+        [Path]
+        PathExists=<%= Kubernetes::Helper.binaries_dir %>/kube-apiserver
+        Unit=kubernetes-api-server.service
+
+        [Install]
+        WantedBy=multi-user.target

@@ -7,7 +7,7 @@ module Etcd
       end
 
       def remote_ssl_dir
-        "/etc/etcd/ssl"
+        '/etc/etcd/ssl'
       end
 
       def remote_ca_file_path

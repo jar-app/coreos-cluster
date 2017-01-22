@@ -8,10 +8,10 @@ namespace 'cluster' do
     # Generate the etcd discover token only once
     Etcd::Helper.etcd_discover_token(CLUSTER_BOOTSTRAP_DATA['num_nodes'])
     ssh_key = do_client.ssh_keys.all.first.id
-    Parallel.each(CLUSTER_BOOTSTRAP_DATA['num_nodes'].times, progress: 'Spinng up VMs') do
+    Parallel.each(CLUSTER_BOOTSTRAP_DATA['num_nodes'].times, progress: 'Spinng up VMs') do |vm_num|
       region = CLUSTER_BOOTSTRAP_DATA['regions'].sample
       name = Cluster::Helper.droplet_name
-      user_data = Cluster::Helper.cloud_config(name)
+      user_data = vm_num.zero? ? Cluster::Helper.master_cloud_config(name) : Cluster::Helper.cloud_config(name)
       droplet = DropletKit::Droplet.new(name: name,
                                         user_data: user_data,
                                         region: region,
@@ -24,6 +24,7 @@ namespace 'cluster' do
     end
     Rake::Task['cluster:list'].execute
     Rake::Task['cluster:etcd:encrypt'].invoke
+    Rake::Task['cluster:kubernetes:install'].invoke
   end
 
   desc 'List droplets in the cluster'
@@ -62,7 +63,7 @@ namespace 'cluster' do
       return logger.error "Network not available on node: #{droplet.name}" unless ip_address
       system("ssh core@#{ip_address}")
     else
-      logger.error "No droplet available"
+      logger.error 'No droplet available'
     end
   end
 

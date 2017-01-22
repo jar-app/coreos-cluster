@@ -10,7 +10,7 @@ require_relative 'certificate_helper'
 CERT_DIR = '.data/certs/'.freeze
 CA_CERT_NAME = 'ca_cert.perm'.freeze
 
-namespace 'cluster' do
+namespace :cluster do
   namespace :etcd do
     desc 'Generate certifactes for etcd2 to encrypt/authenticate all communication'
     task :encrypt do
@@ -74,12 +74,12 @@ namespace 'cluster' do
         }
         begin
           Net::SSH.start(host_ip, user, ssh_opts) do |ssh|
-            ssh.exec!( "sudo mkdir -p #{Etcd::Helper.remote_ssl_dir}")
-            ssh.exec!( "sudo chown core #{Etcd::Helper.remote_ssl_dir}")
+            ssh.exec!("sudo mkdir -p #{Etcd::Helper.remote_ssl_dir}")
+            ssh.exec!("sudo chown core #{Etcd::Helper.remote_ssl_dir}")
             ssh.scp.upload!(key_path, Etcd::Helper.remote_key_file_path)
             ssh.scp.upload!(peer_cert_path, Etcd::Helper.remote_cert_file_path)
             ssh.scp.upload!(ca_cert_path, Etcd::Helper.remote_ca_file_path)
-            ssh.exec!( "sudo chown -hR etcd:etcd #{Etcd::Helper.remote_ssl_dir}")
+            ssh.exec!("sudo chown -hR etcd:etcd #{Etcd::Helper.remote_ssl_dir}")
           end
         rescue => e
           retry_count -= 1
