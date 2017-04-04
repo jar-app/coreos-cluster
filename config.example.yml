@@ -1,4 +1,4 @@
-# Sample config file. Use this as a tempalte for your config.yml
+# Sample config file. Use this as a template for your config.yml
 cluster:
   bootstrap:
     :tags:
